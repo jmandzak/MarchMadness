@@ -15,3 +15,6 @@ Constructed from tournament_matchups.csv, has every cleaned team name combined w
 
 ## team_stats_{year}_.csv
 Constructed from the scrape_team_stats.py script, has all team stats for teams from 2006-2024
+
+## matchups_with_stats.csv
+Constructed from multiple CSVs, this csv has all matchups where stats exist for both teams
