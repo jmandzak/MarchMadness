@@ -37,7 +37,8 @@ def write_all_matchup_differentials(df: pd.DataFrame) -> None:
 
 
 def write_2024_matchups(df: pd.DataFrame) -> None:
-    # Get the rows that have 2024 as the value of the YEAR column
+    # Get the rows that have 2024 as the value of the YEAR column and have 64 for the CURRENT ROUND column
+    df = df[df['CURRENT ROUND'] == 64]
     df = df[df['YEAR'] == 2024]
 
     # For every two rows in the dataframe, get the TEAM column value and the SCORE column value and figure out the winner
