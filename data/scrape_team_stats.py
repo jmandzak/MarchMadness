@@ -3,9 +3,24 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+
+name_conversion_chart = {
+    'BRIGHAMYOUNG': 'BYU',
+    'UCONN': 'CONNECTICUT',
+    'CHARLESTON': 'COLLEGEOFCHARLESTON',
+    'NCST': 'NORTHCAROLINAST'
+}
+
 def clean_name_column(df: pd.DataFrame, year: int) -> pd.DataFrame:
     # Remove all special characters and spaces from the team name and make it uppercase and prepend the year
     df['Team'] = str(year) + df['Team'].str.replace(r'\W+', '').str.upper()
+
+    # Replace STATE with ST
+    df['Team'] = df['Team'].str.replace('STATE', 'ST')
+
+    # If any of the keys in the name_conversion_chart are in the team name, replace it with the value
+    for key, value in name_conversion_chart.items():
+        df['Team'] = df['Team'].str.replace(key, value)
     return df
 
 def main():
