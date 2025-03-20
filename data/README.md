@@ -18,3 +18,10 @@ Constructed from the scrape_team_stats.py script, has all team stats for teams f
 
 ## matchups_with_stats.csv
 Constructed from multiple CSVs, this csv has all matchups where stats exist for both teams
+
+## HOW TO UPDATE
+Update year loop in `scrape_team_stats.py` to get new year, run
+Update year in `extract_from_tournament_results.py`, run
+Run `fix_name_discrepancies.py`, update name conversion chart in `scrape_team_stats.py` to make them match
+Update year loop in `create_matchups_with_stats.py`, run
+Run `advance_round.py` after updating round and year to advance each round as you predict
