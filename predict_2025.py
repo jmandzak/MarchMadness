@@ -57,6 +57,59 @@ def predict_and_save(matchups, teams, use_model_with_seeds, round_):
     )
 
 
+def combined_predict_and_save(matchups, teams, round_):
+    with_seed_model = xgb.XGBRFClassifier()
+    without_seed_model = xgb.XGBRFClassifier()
+
+    with_seed_model.load_model("models/xgb_rf_classifier.model")
+    without_seed_model.load_model("models/xgb_rf_classifier_without_seed.model")
+
+    matchups_without_seeds = matchups.drop(columns=["TEAM1_SEED", "TEAM2_SEED"])
+
+    # Predict the results of the matchups with probabilities so we can combine
+    predictions_with_seeds = with_seed_model.predict_proba(matchups)
+    predictions_without_seeds = without_seed_model.predict_proba(matchups_without_seeds)
+
+    # Combine the predictions by averaging the probabilities
+    averaged_probabilities = (predictions_with_seeds + predictions_without_seeds) / 2
+
+    # Get the predicted classes from the averaged probabilities
+    predictions = [1 if prob[1] > 0.5 else 0 for prob in averaged_probabilities]
+
+    # Create a list matching the predictions to the teams and seeds
+    results = pd.DataFrame(
+        {
+            "TEAM1": teams["TEAM1"],
+            "TEAM2": teams["TEAM2"],
+            "TEAM1_Seed": teams["TEAM1_SEED"],
+            "TEAM2_Seed": teams["TEAM2_SEED"],
+            "TEAM1_WIN": predictions,
+        }
+    )
+
+    # Add a column called UPSET that is 1 if team1_win is 1 and team1 is the higher seed or if team_1_win is 0 and team2 is the higher seed, otherwise 0
+    results["UPSET"] = results.apply(
+        lambda row: (
+            1
+            if (row["TEAM1_WIN"] == 1 and row["TEAM1_Seed"] > row["TEAM2_Seed"])
+            or (row["TEAM1_WIN"] == 0 and row["TEAM1_Seed"] < row["TEAM2_Seed"])
+            else 0
+        ),
+        axis=1,
+    )
+
+    # If team1_win is 1, replace the value with the name of the team in the TEAM1 column, otherwise replace the value with the name of the team in the TEAM2 column
+    results["TEAM1_WIN"] = results.apply(
+        lambda row: row["TEAM1"] if row["TEAM1_WIN"] == 1 else row["TEAM2"], axis=1
+    )
+
+    # Rename the TEAM1_WIN column to be WINNING_TEAM
+    results = results.rename(columns={"TEAM1_WIN": "WINNING_TEAM"})
+
+    # Write the results to a csv file
+    results.to_csv(f"data/predictions_2025/combined/{round_}_round_predictions.csv")
+
+
 def main():
     rounds = ["first", "second", "third", "fourth", "fifth", "sixth"]
 
@@ -67,10 +120,13 @@ def main():
         matchups_without_seeds = pd.read_csv(
             f"data/predictions_2025/without_seeds/{round_}_round_matchups.csv"
         )
+        matchups_combined = pd.read_csv(
+            f"data/predictions_2025/combined/{round_}_round_matchups.csv"
+        )
         stats = pd.read_csv("data/team_stats_2025.csv")
         seeds = pd.read_csv("data/team_seeds_by_year.csv")
 
-        matchups = [matchups_with_seeds, matchups_without_seeds]
+        matchups = [matchups_with_seeds, matchups_without_seeds, matchups_combined]
         teams = []
         for i in range(len(matchups)):
             # Merge the matchups dataframe with the stats dataframe twice on the TEAM1 and TEAM2 columns
@@ -113,6 +169,7 @@ def main():
 
         predict_and_save(matchups[0], teams[0], True, round_)
         predict_and_save(matchups[1], teams[1], False, round_)
+        combined_predict_and_save(matchups[2], teams[2], round_)
 
         if round_ != "sixth":
             advance_round(round_)
